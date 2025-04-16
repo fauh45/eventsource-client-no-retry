@@ -36,22 +36,20 @@ export function createEventSource(
     typeof optionsOrUrl === 'string' || optionsOrUrl instanceof URL
       ? {url: optionsOrUrl}
       : optionsOrUrl
-  const {onMessage, onConnect = noop, onDisconnect = noop, onScheduleReconnect = noop} = options
+  const {onMessage, onConnect = noop, onDisconnect = noop} = options
   const {fetch, url, initialLastEventId} = validate(options)
   const requestHeaders = {...options.headers} // Prevent post-creation mutations to headers
 
   const onCloseSubscribers: (() => void)[] = []
   const subscribers: ((event: EventSourceMessage) => void)[] = onMessage ? [onMessage] : []
   const emit = (event: EventSourceMessage) => subscribers.forEach((fn) => fn(event))
-  const parser = createParser({onEvent, onRetry})
+  const parser = createParser({onEvent})
 
   // Client state
   let request: Promise<unknown> | null
   let currentUrl = url.toString()
   let controller = new AbortController()
   let lastEventId = initialLastEventId
-  let reconnectMs = 2000
-  let reconnectTimer: ReturnType<typeof setTimeout> | undefined
   let readyState: ReadyState = CLOSED
 
   // Let's go!
@@ -89,12 +87,7 @@ export function createEventSource(
       .catch((err: Error & {type: string}) => {
         request = null
 
-        // We expect abort errors when the user manually calls `close()` - ignore those
-        if (err.name === 'AbortError' || err.type === 'aborted') {
-          return
-        }
-
-        scheduleReconnect()
+        throw err
       })
   }
 
@@ -102,7 +95,6 @@ export function createEventSource(
     readyState = CLOSED
     controller.abort()
     parser.reset()
-    clearTimeout(reconnectTimer)
     onCloseSubscribers.forEach((fn) => fn())
   }
 
@@ -167,12 +159,6 @@ export function createEventSource(
     }
   }
 
-  function scheduleReconnect() {
-    onScheduleReconnect({delay: reconnectMs})
-    readyState = CONNECTING
-    reconnectTimer = setTimeout(connect, reconnectMs)
-  }
-
   async function onFetchResponse(response: FetchLikeResponse) {
     onConnect()
     parser.reset()
@@ -219,13 +205,6 @@ export function createEventSource(
       request = null
       parser.reset()
 
-      // EventSources never close unless explicitly handled with `.close()`:
-      // Implementors should send an `done`/`complete`/`disconnect` event and
-      // explicitly handle it in client code, or send an HTTP 204.
-      scheduleReconnect()
-
-      // Calling scheduleReconnect() prior to onDisconnect() allows consumers to
-      // explicitly call .close() before the reconnection is performed.
       onDisconnect()
     } while (open)
   }
@@ -236,10 +215,6 @@ export function createEventSource(
     }
 
     emit(msg)
-  }
-
-  function onRetry(ms: number) {
-    reconnectMs = ms
   }
 
   function getRequestOptions(): FetchLikeInit {
