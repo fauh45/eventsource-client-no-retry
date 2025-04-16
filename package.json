@@ -1,7 +1,7 @@
 {
-  "name": "eventsource-client",
+  "name": "eventsource-client-no-retry",
   "version": "1.1.3",
-  "description": "Modern EventSource client for browsers and Node.js",
+  "description": "Modern EventSource client for browsers and Node.js. Without any retries!",
   "sideEffects": false,
   "types": "./dist/default.d.ts",
   "source": "./src/default.ts",
@@ -43,7 +43,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/rexxars/eventsource-client.git"
+    "url": "git@github.com:fauh45/eventsource-client-no-retry.git"
   },
   "keywords": [
     "sse",
@@ -88,9 +88,9 @@
     "undici": "^6.7.1"
   },
   "bugs": {
-    "url": "https://github.com/rexxars/eventsource-client/issues"
+    "url": "https://github.com/fauh45/eventsource-client-no-retry/pulls"
   },
-  "homepage": "https://github.com/rexxars/eventsource-client#readme",
+  "homepage": "https://github.com/fauh45/eventsource-client-no-retry#readme",
   "prettier": {
     "semi": false,
     "printWidth": 100,
